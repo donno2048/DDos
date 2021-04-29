@@ -6,7 +6,7 @@ DDos any site using python
 
 ### From Pypi
 
-`pip3 install DDos`
+`pip3 install DDos==1.0.1` (You should really use this version)
 
 ### From GitHub
 
