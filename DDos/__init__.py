@@ -25,7 +25,9 @@ class Striker(__import__('multiprocessing').Process):
     def __init__(self, url, sockets, printer, threads, use_proxies):
         super(Striker, self).__init__()
         self.packets, self.socks, self.runnable, self.host, self.url, self.sockets, self.ssl, self.printer, self.threads, self.use_proxies = [0, 0], [], True, url.split("/")[2], "/".join(url.split("/")[3:]).split(";")[0].split("?")[0].split("#")[0], sockets, url.startswith('https'), printer, threads, use_proxies
-    def __del__(self): self.stop()
+    def __del__(self):
+        try: self.stop()
+        except AttributeError: pass
     def run(self):
         while self.runnable:
             try:
