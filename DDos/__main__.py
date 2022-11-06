@@ -5,7 +5,7 @@ from tkinter.messagebox import showerror, askquestion
 from tkinter.simpledialog import askstring
 from tkinter.filedialog import askopenfile
 def main():
-    int_re, root, use_proxies, custom_proxies = compile(r'^\d+$'), Tk(), False, None
+    int_re, root, proxies = compile(r'^\d+$'), Tk(), None
     root.withdraw()
     while True:
         url = askstring("URL", "        Enter the url for the attack        ")
@@ -29,8 +29,7 @@ def main():
             showerror("Error", "Not a valid number, try again")
         else: exit()
     if askquestion("PROXIES", "Would you like to use proxies?") == "yes":
-        use_proxies = True
-        if askquestion("PROXIES", "Whould you like to use the built-in proxies?") == "no": custom_proxies = askopenfile(filetypes = (("Any file", "*.*"),)).readlines()
+        proxies = askopenfile(filetypes = (("Any file", "*.*"),)).readlines()
     root.update()
-    DDos(url, int(sockets), int(threads), use_proxies, custom_proxies)
+    DDos(url, int(sockets), int(threads), proxies)
 if __name__ == "__main__": main()
